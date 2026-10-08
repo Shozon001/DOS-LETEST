@@ -2,7 +2,7 @@ const cloudscraper = require('cloudscraper');
 const request = require('request');
 const randomstring = require('randomstring');
 const config = require('./config.json');
-const { getRandomProxy, getProxyCount, getProxies } = require('./proxies');
+const { getRandomProxy, getProxyCount } = require('./proxies');
 
 let state = {
     running: false,
@@ -53,7 +53,10 @@ function oneCycle() {
     }
 
     // ---- Cloudscraper (with proxy) ----
-    const scraperOptions = { url: url };
+    const scraperOptions = {
+        url: url,
+        timeout: config.requestTimeoutMs || 15000
+    };
     if (proxyUrl) {
         scraperOptions.proxy = proxyUrl;
         scraperOptions.strictSSL = false;
@@ -92,13 +95,12 @@ function oneCycle() {
                 'Referrer': 'http://google.com/' + rand,
                 'X-Forwarded-For': ip
             },
-            timeout: 15000
+            timeout: config.requestTimeoutMs || 15000,
+            strictSSL: false
         };
 
-        // ---- Attach proxy to request ----
         if (proxyUrl) {
             options.proxy = proxyUrl;
-            options.strictSSL = false;
         }
 
         request(options, function (err) {
