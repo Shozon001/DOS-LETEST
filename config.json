@@ -1,5 +1,5 @@
 {
   "targetUrl": "https://pathao.com",
-  "cycleDurationSeconds": 60,
-  "requestIntervalMs": 600
+  "cycleDurationSeconds": 65,
+  "requestIntervalMs": 200
 }
