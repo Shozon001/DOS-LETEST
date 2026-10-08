@@ -31,7 +31,6 @@ function log(msg, color = '#7d8590') {
 function render(s) {
     if (!s) return;
 
-    // ---- Status Pill ----
     const pill = $('statusPill');
     if (s.running) {
         pill.classList.add('running');
@@ -45,17 +44,13 @@ function render(s) {
         $('runVal').className = 'stat-value red';
     }
 
-    // ---- Hero ----
     $('targetUrl').textContent = s.url || '—';
     $('cycleVal').textContent = s.cycleDuration || 60;
-
-    // ---- Stats ----
     $('uptimeVal').textContent = fmtTime(s.uptimeSec || 0);
     $('reqVal').textContent = fmtNumber(s.requestsSent || 0);
     $('errVal').textContent = fmtNumber(s.errors || 0);
     $('restartVal').textContent = s.restarts || 0;
 
-    // ---- Proxy Info ----
     $('proxyCountVal').textContent = s.proxyCount || 0;
 
     const proxyStatus = $('proxyStatusVal');
@@ -74,7 +69,6 @@ function render(s) {
         }
     }
 
-    // ---- RPS Calculation ----
     const now = Date.now();
     const deltaTime = (now - prevReqTime) / 1000;
     const deltaReq = (s.requestsSent || 0) - prevRequests;
@@ -86,7 +80,6 @@ function render(s) {
     }
 }
 
-// Live uptime ticker (every second)
 setInterval(() => {
     if (currentStatus && currentStatus.running && currentStatus.startedAt) {
         const uptime = Math.floor((Date.now() - currentStatus.startedAt) / 1000);
@@ -94,13 +87,11 @@ setInterval(() => {
     }
 }, 1000);
 
-// ---- Socket Events ----
 socket.on('status', (s) => {
     const prev = currentStatus;
     currentStatus = s;
     render(s);
 
-    // First connection
     if (!prev) {
         log(`Connected. Target: ${s.url}`, '#00d4ff');
         if (s.running) log('Monitor is live.', '#10b981');
@@ -112,7 +103,6 @@ socket.on('status', (s) => {
         return;
     }
 
-    // Status change
     if (prev.running !== s.running) {
         log(
             s.running ? `Monitor started → ${s.url}` : 'Monitor stopped',
@@ -120,12 +110,10 @@ socket.on('status', (s) => {
         );
     }
 
-    // Cycle restart
     if (s.restarts > prev.restarts) {
         log(`Auto-cycle complete. Restart #${s.restarts}`, '#f59e0b');
     }
 
-    // Requests progress
     if (s.requestsSent > prev.requestsSent) {
         const diff = s.requestsSent - prev.requestsSent;
         if (s.requestsSent % 100 === 0 || diff >= 25) {
@@ -133,37 +121,20 @@ socket.on('status', (s) => {
         }
     }
 
-    // Errors
     if (s.errors > prev.errors) {
         log(`Error detected (total: ${s.errors})`, '#ef4444');
     }
 
-    // Proxy list update
     if (s.proxyCount !== prev.proxyCount) {
         log(`Proxy list updated: ${s.proxyCount} proxies loaded`, '#7c3aed');
     }
 
-    // Last proxy used change
     if (s.lastProxyUsed && s.lastProxyUsed !== prev.lastProxyUsed) {
         log(`Rotating proxy → ${s.lastProxyUsed}`, '#7c3aed');
     }
-
-    // Proxy enabled/disabled toggle
-    if (s.proxyEnabled !== prev.proxyEnabled) {
-        log(
-            s.proxyEnabled ? 'Proxy mode enabled' : 'Proxy mode disabled',
-            s.proxyEnabled ? '#10b981' : '#f59e0b'
-        );
-    }
 });
 
-socket.on('disconnect', () => {
-    log('Disconnected from server', '#ef4444');
-});
+socket.on('disconnect', () => log('Disconnected from server', '#ef4444'));
+socket.on('connect', () => log('Socket connected', '#10b981'));
 
-socket.on('connect', () => {
-    log('Socket connected', '#10b981');
-});
-
-// Boot message
 log('Initializing dashboard...', '#7c3aed');
