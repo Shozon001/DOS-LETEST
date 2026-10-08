@@ -1,7 +1,8 @@
 {
-  "targetUrl": "http://example.com",
+  "targetUrl": "https://pathao.com",
   "cycleDurationSeconds": 60,
   "requestIntervalMs": 200,
   "useProxy": true,
-  "rotateProxyEveryRequest": true
+  "rotateProxyEveryRequest": true,
+  "requestTimeoutMs": 15000
 }
