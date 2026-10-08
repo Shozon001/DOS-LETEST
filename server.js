@@ -10,6 +10,7 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Read-only API - no control endpoints
 app.get('/api/status', (req, res) => {
     res.json(getStatus());
 });
