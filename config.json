@@ -1,0 +1,7 @@
+{
+  "targetUrl": "http://example.com",
+  "cycleDurationSeconds": 60,
+  "requestIntervalMs": 200,
+  "useProxy": true,
+  "rotateProxyEveryRequest": true
+}
