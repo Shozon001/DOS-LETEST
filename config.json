@@ -1,6 +1,6 @@
 {
-  "targetUrl": "https://google.com",
-  "cycleDurationSeconds": 60,
+  "targetUrl": "https://pathao.com",
+  "cycleDurationSeconds": 65,
   "requestIntervalMs": 200,
   "useProxy": true,
   "rotateProxyEveryRequest": true,
