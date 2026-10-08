@@ -51,24 +51,7 @@ function render(s) {
     $('errVal').textContent = fmtNumber(s.errors || 0);
     $('restartVal').textContent = s.restarts || 0;
 
-    $('proxyCountVal').textContent = s.proxyCount || 0;
-
-    const proxyStatus = $('proxyStatusVal');
-    if (proxyStatus) {
-        if (s.proxyEnabled) {
-            if (s.proxyCount > 0) {
-                proxyStatus.textContent = 'Active';
-                proxyStatus.className = 'stat-value green';
-            } else {
-                proxyStatus.textContent = 'No Proxy';
-                proxyStatus.className = 'stat-value red';
-            }
-        } else {
-            proxyStatus.textContent = 'Disabled';
-            proxyStatus.className = 'stat-value';
-        }
-    }
-
+    // Calculate RPS
     const now = Date.now();
     const deltaTime = (now - prevReqTime) / 1000;
     const deltaReq = (s.requestsSent || 0) - prevRequests;
@@ -95,19 +78,12 @@ socket.on('status', (s) => {
     if (!prev) {
         log(`Connected. Target: ${s.url}`, '#00d4ff');
         if (s.running) log('Monitor is live.', '#10b981');
-        if (s.proxyEnabled) {
-            log(`Proxy mode enabled. Loaded: ${s.proxyCount} proxies`, '#7c3aed');
-        } else {
-            log('Proxy mode disabled.', '#7d8590');
-        }
         return;
     }
 
     if (prev.running !== s.running) {
-        log(
-            s.running ? `Monitor started → ${s.url}` : 'Monitor stopped',
-            s.running ? '#10b981' : '#ef4444'
-        );
+        log(s.running ? `Monitor started → ${s.url}` : 'Monitor stopped',
+            s.running ? '#10b981' : '#ef4444');
     }
 
     if (s.restarts > prev.restarts) {
@@ -124,17 +100,10 @@ socket.on('status', (s) => {
     if (s.errors > prev.errors) {
         log(`Error detected (total: ${s.errors})`, '#ef4444');
     }
-
-    if (s.proxyCount !== prev.proxyCount) {
-        log(`Proxy list updated: ${s.proxyCount} proxies loaded`, '#7c3aed');
-    }
-
-    if (s.lastProxyUsed && s.lastProxyUsed !== prev.lastProxyUsed) {
-        log(`Rotating proxy → ${s.lastProxyUsed}`, '#7c3aed');
-    }
 });
 
-socket.on('disconnect', () => log('Disconnected from server', '#ef4444'));
-socket.on('connect', () => log('Socket connected', '#10b981'));
+socket.on('disconnect', () => {
+    log('Disconnected from server', '#ef4444');
+});
 
 log('Initializing dashboard...', '#7c3aed');
