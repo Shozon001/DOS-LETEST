@@ -1,5 +1,5 @@
 {
-  "targetUrl": "http://example.com",
-  "cycleDurationSeconds": 60,
+  "targetUrl": "https://pathao.com",
+  "cycleDurationSeconds": 120,
   "requestIntervalMs": 200
 }
